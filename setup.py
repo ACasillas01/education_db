@@ -6,8 +6,32 @@ from db.dgraph_client import create_dgraph_client
 from datetime import datetime
 import pydgraph
 
-# --- MongoDB ---
 
+# setup_all.py - Setup MongoDB, Cassandra, and Dgraph Models and Sample Data
+
+import subprocess
+from models.mongo_init import setup_mongodb_collections
+from models.cassandra_init import setup_cassandra_schema
+from models.dgraph_init import setup_dgraph_schema
+
+def setup_all():
+    print("\n=== Setting up MongoDB Collections and Indexes ===")
+    setup_mongodb_collections()
+
+    print("\n=== Setting up Cassandra Keyspace and Tables ===")
+    setup_cassandra_schema()
+
+    print("\n=== Setting up Dgraph Schema ===")
+    setup_dgraph_schema()
+
+    print("\n=== Loading Sample Data into MongoDB, Cassandra, and Dgraph ===")
+    load_mongodb()
+    load_cassandra()
+    load_dgraph()
+
+    print("\n🚀 Full system setup completed successfully!")
+
+# --- MongoDB ---
 def load_mongodb():
     db = get_mongo_db()
 
@@ -162,6 +186,10 @@ def set_dgraph_schema(client):
 
 # --- Run All ---
 if __name__ == '__main__':
+    print("\n=== Setting up MongoDB, Cassandra, and Dgraph ===")
+    setup_all()
+
+    print("\n=== Loading Sample Data ===")
     load_mongodb()
     load_cassandra()
     load_dgraph()

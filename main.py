@@ -1,7 +1,7 @@
 # main.py - Unified Menu for MongoDB, Cassandra, and Dgraph
 
 from mongo_model import register_user, update_user_profile, create_course, add_lesson_to_course, create_lesson, create_quiz, create_certificate
-from cassandra_model import log_user_activity, track_lesson_completion, log_quiz_attempt, log_session, update_performance_summary
+from cassandra_model import track_lesson_completion, log_user_activity, track_lesson_completion, log_quiz_attempt, log_session, update_performance_summary
 from dgraph_model import enroll_student, instructor_teaches, submit_assignment, student_follows_instructor, message_between_users
 from datetime import datetime
 
