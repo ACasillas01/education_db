@@ -18,5 +18,5 @@ Online Education Platform proyecto for the Non SQL Databases course
 Make sure to load some data using the Bulk loader
 
 ```
-python bulk_loader.py
+python setup.py
 ```
