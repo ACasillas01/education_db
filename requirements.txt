@@ -1,0 +1,5 @@
+pydgraph
+pymongo
+cassandra-driver
+bcrypt
+python-dotenv
