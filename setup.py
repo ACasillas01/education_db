@@ -10,9 +10,9 @@ import pydgraph
 # setup_all.py - Setup MongoDB, Cassandra, and Dgraph Models and Sample Data
 
 import subprocess
-from models.mongo_init import setup_mongodb_collections
-from models.cassandra_init import setup_cassandra_schema
-from models.dgraph_init import setup_dgraph_schema
+from models.init.mongo_init import setup_mongodb_collections
+from models.init.cassandra_init import setup_cassandra_schema
+from models.init.dgraph_init import setup_dgraph_schema
 
 def setup_all():
     print("\n=== Setting up MongoDB Collections and Indexes ===")
@@ -35,21 +35,27 @@ def setup_all():
 def load_mongodb():
     db = get_mongo_db()
 
-    user = {
-        "username": "jdoe",
-        "email": "jdoe@example.com",
-        "hashed_password": "$2b$12$exampleHashedPassword1234567890",
-        "profile": {
-            "name": "John Doe",
-            "bio": "Lifelong learner",
-            "photo": "https://cdn.example.com/profiles/jdoe.jpg"
-        },
-        "language_preference": "en",
-        "bookmarks": [],
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
-    }
-    user_id = db.users.insert_one(user).inserted_id
+    # Check if the user already exists
+    existing_user = db.users.find_one({"email": "jdoe@example.com"})
+    if existing_user:
+        print(f"User with email 'jdoe@example.com' already exists. Skipping insertion.")
+        user_id = existing_user["_id"]
+    else:
+        user = {
+            "username": "jdoe",
+            "email": "jdoe@example.com",
+            "hashed_password": "$2b$12$exampleHashedPassword1234567890",
+            "profile": {
+                "name": "John Doe",
+                "bio": "Lifelong learner",
+                "photo": "https://cdn.example.com/profiles/jdoe.jpg"
+            },
+            "language_preference": "en",
+            "bookmarks": [],
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+        user_id = db.users.insert_one(user).inserted_id
 
     course = {
         "instructor_id": user_id,
@@ -62,7 +68,14 @@ def load_mongodb():
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
     }
-    course_id = db.courses.insert_one(course).inserted_id
+
+    # Check if the course already exists
+    existing_course = db.courses.find_one({"title": course["title"]})
+    if existing_course:
+        print(f"Course with title '{course['title']}' already exists. Skipping insertion.")
+        course_id = existing_course["_id"]
+    else:
+        course_id = db.courses.insert_one(course).inserted_id
 
     lesson = {
         "course_id": course_id,
@@ -73,7 +86,12 @@ def load_mongodb():
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
     }
-    db.lessons.insert_one(lesson)
+    # Check if the lesson already exists
+    existing_lesson = db.lessons.find_one({"title": lesson["title"]})
+    if existing_lesson:
+        print(f"Lesson with title '{lesson['title']}' already exists. Skipping insertion.")
+    else:
+        db.lessons.insert_one(lesson)
 
     quiz = {
         "course_id": course_id,
@@ -88,7 +106,12 @@ def load_mongodb():
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
     }
-    db.quizzes.insert_one(quiz)
+    # Check if the quiz already exists
+    existing_quiz = db.quizzes.find_one({"course_id": quiz["course_id"]})
+    if existing_quiz:
+        print(f"Quiz for course ID '{quiz['course_id']}' already exists. Skipping insertion.")
+    else:
+        db.quizzes.insert_one(quiz)
 
     cert = {
         "user_id": user_id,
@@ -96,7 +119,12 @@ def load_mongodb():
         "completion_date": datetime.utcnow(),
         "certificate_link": "https://cdn.example.com/certificates/cert123.pdf"
     }
-    db.certificates.insert_one(cert)
+    # Check if the certificate already exists
+    existing_cert = db.certificates.find_one({"user_id": cert["user_id"], "course_id": cert["course_id"]})
+    if existing_cert:
+        print(f"Certificate for user ID '{cert['user_id']}' and course ID '{cert['course_id']}' already exists. Skipping insertion.")
+    else:
+        db.certificates.insert_one(cert)
 
     print("✅ MongoDB sample data inserted.")
 
@@ -169,6 +197,11 @@ def load_dgraph():
 
 
 def set_dgraph_schema(client):
+    # Clear the existing schema
+    print("🔄 Clearing existing Dgraph schema...")
+    client.alter(pydgraph.Operation(drop_all=True))
+
+    # Define the new schema
     schema = """
     student_id: string @index(exact) .
     instructor_id: string @index(exact) .
@@ -177,10 +210,21 @@ def set_dgraph_schema(client):
     title: string .
     enrolled: [uid] @reverse .
     follows: [uid] @reverse .
-    type Student { student_id enrolled follows }
-    type Instructor { instructor_id name }
-    type Course { course_id title }
+    type Student {
+        student_id: string
+        enrolled: [uid]
+        follows: [uid]
+    }
+    type Instructor {
+        instructor_id: string
+        name: string
+    }
+    type Course {
+        course_id: string
+        title: string
+    }
     """
+    print("✅ Setting new Dgraph schema...")
     client.alter(pydgraph.Operation(schema=schema))
 
 

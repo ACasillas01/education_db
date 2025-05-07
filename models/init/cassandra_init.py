@@ -1,5 +1,7 @@
-from db.cassandra_client import get_cassandra_session
+from db.cassandra_client import get_cassandra_session, KEYSPACE
+import logging
 
+log = logging.getLogger(__name__)
 def setup_cassandra_schema():
     session = get_cassandra_session()
 
@@ -9,7 +11,7 @@ def setup_cassandra_schema():
     WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
     """)
 
-    session.set_keyspace('online_edu')
+    session.set_keyspace(KEYSPACE)
 
     # Create tables
     session.execute("""
@@ -67,6 +69,7 @@ def setup_cassandra_schema():
     );
     """)
 
+    log.info("✅ Cassandra schema setup completed.")
     print("✅ Cassandra keyspace and tables created.")
 
 if __name__ == "__main__":

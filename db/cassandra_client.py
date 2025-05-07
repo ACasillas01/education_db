@@ -1,7 +1,7 @@
 from cassandra.cluster import Cluster
 import os
 import logging
-import cassandra_model
+import models.cassandra_model as cassandra_model
 
 # Set logger
 log = logging.getLogger()
@@ -12,7 +12,7 @@ log.addHandler(handler)
 
 # Read env vars related to Cassandra App
 CLUSTER_IPS = os.getenv('CASSANDRA_CLUSTER_IPS', 'localhost')
-KEYSPACE = os.getenv('CASSANDRA_KEYSPACE', 'investments')
+KEYSPACE = os.getenv('CASSANDRA_KEYSPACE', 'online_edu')
 REPLICATION_FACTOR = os.getenv('CASSANDRA_REPLICATION_FACTOR', '1')
 
 def get_cassandra_session():
