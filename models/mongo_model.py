@@ -9,7 +9,7 @@ db = get_mongo_db()
 def find_user_by_email(email):
     return db.users.find_one({"email": email})
 
-def register_user(username, email, password):
+def register_user(username, email, password, role):
     if db.users.find_one({"$or": [{"username": username}, {"email": email}]}):
         print("User already exists.")
         return
@@ -20,7 +20,7 @@ def register_user(username, email, password):
         "username": username,
         "email": email,
         "hashed_password": hashed_pw.decode(),
-        "profile": {},
+        "role": role,
         "language_preference": "en",
         "bookmarks": [],
         "created_at": datetime.utcnow(),
