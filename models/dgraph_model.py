@@ -55,8 +55,9 @@ def enroll_student(student_id, course_id):
                 }
             ]
         }
-        txn.mutate(set_obj=data, commit_now=True)
+        response = txn.mutate(set_obj=data, commit_now=True)
         print(f"{student_id} enrolled in {course_id}")
+        print("Generated UIDs:", response.uids)
     finally:
         stub.close()
 
@@ -100,8 +101,9 @@ def submit_assignment(student_id, assignment_id, score):
                 }
             ]
         }
-        txn.mutate(set_obj=data, commit_now=True)
+        response = txn.mutate(set_obj=data, commit_now=True)
         print(f"{student_id} submitted {assignment_id}")
+        print("Generated UIDs:", response.uids)
     finally:
         stub.close()
 
@@ -122,8 +124,9 @@ def student_follows_instructor(student_id, instructor_id):
                 }
             ]
         }
-        txn.mutate(set_obj=data, commit_now=True)
+        response = txn.mutate(set_obj=data, commit_now=True)
         print(f"{student_id} now follows {instructor_id}")
+        print("Generated UIDs:", response.uids)
     finally:
         stub.close()
 

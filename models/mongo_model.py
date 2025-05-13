@@ -27,8 +27,8 @@ def register_user(username, email, password):
         "updated_at": datetime.utcnow()
     }
     
-    db.users.insert_one(user)
-    print(f"User {username} registered.")
+    result = db.users.insert_one(user)
+    print(f"User {username} registered with ID: {result.inserted_id}")
 
 def update_user_profile(user_id, name=None, bio=None, photo=None):
     update = {"updated_at": datetime.utcnow()}
@@ -50,7 +50,8 @@ def create_course(instructor_id, title, description, category, tags):
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
     }
-    db.courses.insert_one(course)
+    result = db.courses.insert_one(course)
+    print(f"Course '{title}' created with ID: {result.inserted_id}")
 
 def add_lesson_to_course(course_id, lesson_id):
     db.courses.update_one({"_id": ObjectId(course_id)}, {"$push": {"lesson_ids": ObjectId(lesson_id)}})
@@ -66,7 +67,8 @@ def create_lesson(course_id, title, content, content_type, resource_urls):
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
     }
-    db.lessons.insert_one(lesson)
+    result = db.lessons.insert_one(lesson)
+    print(f"Lesson '{title}' created with ID: {result.inserted_id}")
 
 # --- Quizzes ---
 def create_quiz(course_id, questions):
@@ -76,7 +78,8 @@ def create_quiz(course_id, questions):
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
     }
-    db.quizzes.insert_one(quiz)
+    result = db.quizzes.insert_one(quiz)
+    print(f"Quiz created with ID: {result.inserted_id}")
 
 # --- Certificates ---
 def create_certificate(user_id, course_id, certificate_link):
@@ -86,4 +89,5 @@ def create_certificate(user_id, course_id, certificate_link):
         "completion_date": datetime.utcnow(),
         "certificate_link": certificate_link
     }
-    db.certificates.insert_one(cert)
+    result = db.certificates.insert_one(cert)
+    print(f"Certificate created with ID: {result.inserted_id}")
