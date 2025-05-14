@@ -1,4 +1,5 @@
 from datetime import datetime
+from cassandra.query import SimpleStatement
 
 # --- Keyspace and Schema Creation ---
 def create_keyspace(session, keyspace, replication_factor):
@@ -67,3 +68,39 @@ def update_performance_summary(session, user_id, course_id, average_score, lesso
     """
     session.execute(query, (user_id, course_id, average_score, lessons_completed, total_lessons, progress_percent))
 
+# --- Student Performance Analytics
+def get_performance_summary(session, user_id: str, course_id: str):
+    cql = """
+    SELECT average_score, lessons_completed, total_lessons, progress_percent
+      FROM performance_summary
+     WHERE user_id=%s AND course_id=%s;
+    """
+    stmt = session.prepare(cql)
+    row = session.execute(stmt, (user_id, course_id)).one()
+    if row:
+        return {
+            "average_score": row.average_score,
+            "lessons_completed": row.lessons_completed,
+            "total_lessons": row.total_lessons,
+            "progress_percent": row.progress_percent
+        }
+    return None
+
+# --- Tracking Student Activity ---
+def log_user_activity(session, user_id: str, activity_type: str, metadata: dict):
+    cql = """
+    INSERT INTO user_activity (user_id, timestamp, activity_type, metadata)
+    VALUES (%s, toTimestamp(now()), %s, %s)
+    """
+    stmt = session.prepare(cql)
+    session.execute(stmt, (user_id, activity_type, metadata))
+
+# --- Show Quiz Results
+def get_quiz_results(session, user_id: str, quiz_id: str):
+    cql = """
+    SELECT attempt_timestamp, score, responses
+      FROM quiz_attempts
+     WHERE user_id=%s AND quiz_id=%s;
+    """
+    stmt = session.prepare(cql)
+    return [row._asdict() for row in session.execute(stmt, (user_id, quiz_id))]

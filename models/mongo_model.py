@@ -2,10 +2,26 @@ from db.mongo_client import get_mongo_db
 from bson.objectid import ObjectId
 from datetime import datetime
 import bcrypt
+import secrets
+from datetime import timedelta
 
 db = get_mongo_db()
 
 # --- Users ---
+def login_user(email: str, password: str, ip_address: str, device_info: str):
+    user = db.users.find_one({"email": email})
+    if not user or not bcrypt.checkpw(password.encode(), user["hashed_password"].encode()):
+        return None
+    session = {
+        "user_id": user["_id"],
+        "login_timestamp": datetime.utcnow(),
+        "ip_address": ip_address,
+        "device_info": device_info,
+        "active": True
+    }
+    session_id = db.sessions.insert_one(session).inserted_id
+    return str(session_id)
+
 def find_user_by_email(email):
     return db.users.find_one({"email": email})
 
@@ -91,3 +107,76 @@ def create_certificate(user_id, course_id, certificate_link):
     }
     result = db.certificates.insert_one(cert)
     print(f"Certificate created with ID: {result.inserted_id}")
+
+# --- Bookmarking Courses ---
+def add_bookmark(user_id: str, course_id: str):
+    db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$addToSet": {"bookmarks": ObjectId(course_id)}}
+    )
+
+def remove_bookmark(user_id: str, course_id: str):
+    db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$pull": {"bookmarks": ObjectId(course_id)}}
+    )
+
+# --- Multi-language Support ---
+def set_language_preference(user_id: str, lang_code: str):
+    db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"language_preference": lang_code, "updated_at": datetime.utcnow()}}
+    )
+
+# --- Password Recovery ---
+def create_password_reset(email: str):
+    user = db.users.find_one({"email": email})
+    if not user:
+        return None
+    token = secrets.token_urlsafe(32)
+    db.password_resets.insert_one({
+        "user_id": user["_id"],
+        "token": token,
+        "created_at": datetime.utcnow(),
+        "expires_at": datetime.utcnow() + timedelta(hours=1)
+    })
+    return token
+
+def reset_password(token: str, new_password: str):
+    pr = db.password_resets.find_one({
+        "token": token,
+        "expires_at": {"$gt": datetime.utcnow()}
+    })
+    if not pr:
+        return False
+    hashed = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
+    db.users.update_one({"_id": pr["user_id"]}, {"$set": {"hashed_password": hashed}})
+    db.password_resets.delete_one({"_id": pr["_id"]})
+    return True
+
+# --- Search Courses by Title or Category ---
+def search_courses(keyword: str = None, category: str = None):
+    q = {}
+    if keyword:
+        q["$text"] = {"$search": keyword}
+    if category:
+        q["category"] = category
+    cursor = db.courses.find(q)
+    if keyword:
+        cursor = cursor.sort([("score", {"$meta": "textScore"})])
+    return list(cursor)
+
+# --- Course Category Browsing ---
+def browse_courses_by_category(category: str):
+    return list(db.courses.find({"category": category}))
+
+# --- Logout ---
+def logout_user(session_id: str):
+    db.sessions.update_one(
+        {"_id": ObjectId(session_id)},
+        {"$set": {"active": False}}
+    )
+
+# --- View Course Details
+def get_course_details(course_id: str):
+    return db.courses.find_one({"_id": ObjectId(course_id)})

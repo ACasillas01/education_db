@@ -1,4 +1,5 @@
 from db.dgraph_client import create_dgraph_client
+from datetime import datetime
 
 def set_dgraph_schema(client):
     schema = """
@@ -147,5 +148,86 @@ def message_between_users(sender_id, receiver_id, content):
         }
         txn.mutate(set_obj=data, commit_now=True)
         print(f"{sender_id} messaged {receiver_id}")
+    finally:
+        stub.close()
+
+# --- Personalized Course Recommendations ---
+def recommend_courses(student_id: str, limit: int = 5):
+    query = f'''
+    {{
+      rec(func: eq(student_id, "{student_id}")) @cascade {{
+        enrolled {{
+          teaches {{
+            enrolled(first: {limit}) {{
+              course_id
+              title
+            }}
+          }}
+        }}
+      }}
+    }}
+    '''
+    client, stub = create_dgraph_client()
+    try:
+        res = client.txn(read_only=True).query(query)
+        return res.json
+    finally:
+        stub.close()
+
+# --- Discussion Forum & Social Interactions ---
+def create_forum_post(post_id: str, user_id: str, content: str):
+    data = {
+      "uid": f"_:{post_id}",
+      "dgraph.type": "Post",
+      "post_id": post_id,
+      "author": [{"uid": f"_:{user_id}"}],
+      "content": content,
+      "timestamp": datetime.utcnow().isoformat()
+    }
+    client, stub = create_dgraph_client()
+    try:
+        client.txn().mutate(set_obj=data, commit_now=True)
+    finally:
+        stub.close()
+
+def reply_to_post(parent_id: str, reply_id: str, user_id: str, content: str):
+    data = {
+      "uid": f"_:{parent_id}",
+      "replies": [{
+        "uid": f"_:{reply_id}",
+        "dgraph.type": "Post",
+        "post_id": reply_id,
+        "author": [{"uid": f"_:{user_id}"}],
+        "content": content,
+        "timestamp": datetime.utcnow().isoformat()
+      }]
+    }
+    client, stub = create_dgraph_client()
+    try:
+        client.txn().mutate(set_obj=data, commit_now=True)
+    finally:
+        stub.close()
+
+# --- Course Prerequisites ---
+def add_prerequisite(course_id: str, prereq_id: str):
+    data = {
+      "uid": f"_:{course_id}",
+      "prerequisite": [{"uid": f"_:{prereq_id}"}]
+    }
+    client, stub = create_dgraph_client()
+    try:
+        client.txn().mutate(set_obj=data, commit_now=True)
+    finally:
+        stub.close()
+
+# --- Course Completion Link ---
+def mark_course_completed(student_id: str, course_id: str):
+    data = {
+      "uid": f"_:{student_id}",
+      "completed": [{"uid": f"_:{course_id}"}]
+    }
+    client, stub = create_dgraph_client()
+    try:
+        client.txn().mutate(set_obj=data, commit_now=True)
     finally:
         stub.close()

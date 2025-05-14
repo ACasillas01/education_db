@@ -6,6 +6,9 @@ from db.dgraph_client import create_dgraph_client
 from datetime import datetime
 import pydgraph
 
+from models.mongo_model import add_bookmark, set_language_preference, create_password_reset
+from models.cassandra_model import log_user_activity
+from models.dgraph_model import create_forum_post, reply_to_post, add_prerequisite, mark_course_completed
 
 # setup_all.py - Setup MongoDB, Cassandra, and Dgraph Models and Sample Data
 
@@ -126,6 +129,15 @@ def load_mongodb():
     else:
         db.certificates.insert_one(cert)
 
+    user = db.users.find_one({"email": "jdoe@example.com"})
+    if user:
+        course = db.courses.find_one({"title": "Introduction to NoSQL"})
+        if course:
+            add_bookmark(str(user["_id"]), str(course["_id"]))
+        set_language_preference(str(user["_id"]), "es")
+        token = create_password_reset(user["email"])
+        print(f"[Mongo] Created reset token: {token}")
+
     print("✅ MongoDB sample data inserted.")
 
 
@@ -159,6 +171,9 @@ def load_cassandra():
     VALUES ('u123', 'c101', 88.0, 3, 5, 60.0)
     """)
 
+    log_user_activity(session, "u123", "page_view", {"page": "dashboard"})
+    print("✅ Cassandra extra activity logged.")
+
     print("✅ Cassandra sample data inserted.")
 
 
@@ -190,6 +205,12 @@ def load_dgraph():
             }
         ]
     }
+
+    create_forum_post("post1", "u123", "Welcome to Dgraph forum!")
+    reply_to_post("post1", "reply1", "i456", "Thanks for joining.")
+    add_prerequisite("c101", "c100")
+    mark_course_completed("u123", "c101")
+    print("✅ Dgraph forum/prereqs/completion seeded.")
 
     txn.mutate(set_obj=data, commit_now=True)
     stub.close()
